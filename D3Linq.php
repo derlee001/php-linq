@@ -1,111 +1,13 @@
 <?php
     /**
     * @name        D3Linq | Linq In Php
-    * @version     1.6.0
+    * @version     1.6.1
     * @author      Tufan Baris YILDIRIM
     * @link        htpp://www.tufyta.com
     * @since       20.10.2009
-    *
-    * v1.6.0
-    * =======
-    * - d3grid Integrated.
-    * - i've re-written some complex code blocks.
-    *
-    * v1.5.5
-    * ======
-    * - xml_string() added for xml string vars.also xml_file can select from xml string var.
-    * - tags which have 2 letters (eg. li ul dt dl etc..) parsing bug [fixed]
-    * - added preg_quote to LIKE creater function. [fixed]
-    * - added a control for integer keys on unsetByArray [fixed]
-    * v1.5.4
-    * =======
-    * - html tag names lowered after crawl
-    * - unsetByArray added for unset variables which created by extract();
-    * - all rows was returning when first row is matched and other hasn't got same columns (resolved by usetByArray) [fixed]
-    * v1.5.3
-    * ======
-    * - GetContentsFunc public variable added  for change  file_get_contents func as u declared. Ex: curl
-    * - Notice Errors resolved.
-    * - much moreee stronger html parser (:
-    * - dir_file and dir_files functions added for select dirs or files from a dir. ex: select from dir_files(dirname) WHERE  name LIKE '%myfile%'
-    * v1.5.2
-    * ======
-    * - new json_file(  can read serialized data by php or json encoded data
-    * - performed about stabilization . unsetted big arrays and unnecessaried used variables
-    * - bug about dot obje to an array when child obje key is numeric [fixed]
-    *   -- Tools Funcsions Added --
-    * -  arrayRebuild
-    *    ------------
-    * - Can Rebuild an array by a template you given
-    * - getArrayName
-    *   -------------
-    * - return last array name .. or last created virtual arrayname after query.
-    * - getResult
-    *   -------------
-    * - get all result array.
-    * v1.5.1
-    * ======
-    * - text_file(); function added.
-    *                  .Ex: select line,text from text_file(file.txt) where line=50 OR text LIKE '%linq%'
-    * - html_file(); function added.
-    *                  .Ex: select  innertHTML,text FROM html_file(http://tufyta.com).div WHERE class='post_title';
-    * - name of selected array by func cannot start with a numeric char [fixed]
-    * - "NOT" support added for LIKE claueses.
-    * - debug() func added. can selfdebug on error if OnError=='selfdebug';
-    * - Token Analyzer and Token errors Added.
-    * - CreateWhereClause Func Added for create a boolean returnable php code from WHERE clause you wroten
-    * v1.5.0
-    * ======
-    * - FirstOf() function changed.(used foreach).
-    * - Order by bug fixed (invalid column error when column has a space char).
-    * - Updatable keys and values (UPDATE array SET value=....).
-    * - Array Update errors added.
-    * - Func Support Added. (can create and use this func in queries)
-    *      . json_file().
-    *          - can read json to a global array and select from it
-    *      .xml_file().
-    *          - can read a xml file (as dataset) to a global array and select from it or a datatable in it.
-    * v1.4.0
-    * ======
-    * - UPDATE statement Added Thanx to Ridvan  http://www.phpclasses.org/browse/author/668797.html
-    * - data_seek bug [fixed] reported by Ridvan Karatas at  http://www.phpclasses.org/discuss/package/5893/thread/1/
-    * - Order by bug [fixed]
-    * - Delete bug (couldnt use after order ) [fixed]
-    * v1.3.0
-    * ======
-    * - Insert Statement Added.
-    *      . Can use insert statement like '(key,value) VALUES (...,...) for 1 dimmensional arrays
-    *      . and like  (col1,col2,col3) VALUES (..)  for multi dimmensional arrays'
-    * v1.2.1
-    * =======
-    * - Columns can be used as a string in where clause [added]
-    * - Last Column Name was wrong. [fixed]
-    * - Order was wrong for numerics. [fixed]
-    * - Distinct method had an error about implode. [fixed]
-    * v1.2.0
-    * ======
-    * - DISTINCT Support Added.
-    * v1.1.0
-    * ======
-    * - Created Wagons for Easy parse Tokens
-    * - ORDER BY Support Added.
-    * - Unknown column Error added. Checker for columns are used on ORDER Clauses
-    * v1.0.2
-    * ======
-    * - affected_rows() func added.
-    * v1.0.1
-    * ======
-    * - Delete Statemend added. Can Delete any object from an array ( global )
-    * v1.0
-    * ======
-    * - This Class can be used for select from arrays as a sql query
-    * - You;
-    * - Can use php codes in Where clauses
-    * - Can also use alias for key and value
-    * - And can select array in array as  arrayname.elementname
     */
-    class D3Linq{
-
+    class D3Linq
+    {
         public    $OnError = 'selfdebug',
         $GetContentsFunc,
         $DebugDeepLimit =0,
@@ -130,57 +32,59 @@
         * @since v1.1.0
         * @var mixed
         */
-         $wagons=array(
-                'statement'         =>array('wagon' => 'SELECT|DELETE|INSERT|UPDATE','options'=>'','msg'=>'Statement can only be Select,Delete,Insert or Update'),
-                'space_1'           =>array('wagon' => '[\s]+','options'=>'?'),
-                'unique'            =>array('wagon' => 'DISTINCT','options'=>'?'),
-                'columns'           =>array('wagon' => '[a-zA-Z0-9\s,]+|\*|[^\(\s]+','options'=>'?'),
-                'space_2'           =>array('wagon' => '[\s]+','options'=>'?'),
-                'fromorinto'        =>array('wagon' => 'FROM|INTO','options'=>'','msg'=>'You must use this token either FROM or INTO'),
-                'space_3'           =>array('wagon' => '[\s]+','options'=>''),
-                'func_name'         =>array('wagon' => 'json_file|xml_file|text_file|html_file|dir_files?|xml_string','options'=>'?'),
-                'func_pr1'          =>array('wagon' => '\(','options'=>'?'),
-                'arrayname'         =>array('wagon' => '[A-Za-z_0-9\.\[\]\\\:\/%_&\?=\-]+','options'=>'','msg'=>'UnReachable Array'),
-                'func_pr2'          =>array('wagon' => '\)','options'=>'?'),
-                'func_in'           =>array('wagon' => '\.[A-Za-z_0-9\.\@]+','options'=>'?'),
-                'space_4'           =>array('wagon' => '[\s]+','options'=>'*'),
+        $wagons=array(
+                        'statement'         =>array('wagon' => 'SELECT|DELETE|INSERT|UPDATE','options'=>'','msg'=>'Statement can only be Select,Delete,Insert or Update'),
+                        'space_1'           =>array('wagon' => '[\s]+','options'=>'?'),
+                        'unique'            =>array('wagon' => 'DISTINCT','options'=>'?'),
+                        'columns'           =>array('wagon' => '[a-zA-Z0-9\s,]+|\*|[^\(\s]+','options'=>'?'),
+                        'space_2'           =>array('wagon' => '[\s]+','options'=>'?'),
+                        'fromorinto'        =>array('wagon' => 'FROM|INTO','options'=>'','msg'=>'You must use this token either FROM or INTO'),
+                        'space_3'           =>array('wagon' => '[\s]+','options'=>''),
+                        'func_name'         =>array('wagon' => 'json_file|xml_file|text_file|html_file|dir_files?|xml_string','options'=>'?'),
+                        'func_pr1'          =>array('wagon' => '\(','options'=>'?'),
+                        'arrayname'         =>array('wagon' => '[A-Za-z_0-9\.\[\]\\\:\/%_&\?=\-]+','options'=>'','msg'=>'UnReachable Array'),
+                        'func_pr2'          =>array('wagon' => '\)','options'=>'?'),
+                        'func_in'           =>array('wagon' => '\.[A-Za-z_0-9\.\@]+','options'=>'?'),
+                        'space_4'           =>array('wagon' => '[\s]+','options'=>'*'),
 
-                //Update Clause @since v1.4.0
-                'updateClause'      =>array('wagon' => array(
-                                                            'set'       =>array('wagon'=>'SET','options'=>''),
-                                                            'set_space' =>array('wagon'=>'[\s]+','options'=>''),
-                                                            'colandval' =>array('wagon'=>'[A-Za-z0-9_-]+\=.*','options'=>'+'),
-                                                            ),
-                                                            'options'=>'?'
-                                                            ),
+        //Update Clause @since v1.4.0
+        'updateClause'      =>array('wagon' => array(
+                                                    'set'       =>array('wagon'=>'SET','options'=>''),
+                                                    'set_space' =>array('wagon'=>'[\s]+','options'=>''),
+                                                    'colandval' =>array('wagon'=>'[A-Za-z0-9_-]+\=.*','options'=>'+'),
+                                                ),
+                                    'options'=>'?'
+        ),
 
-                // INSERT Clause  @since v1.3.0
-                'insertClause'       =>array('wagon' => array(
+        // INSERT Clause  @since v1.3.0
+        'insertClause'       =>array('wagon' => array(
                                                         'insertColumns' =>array('wagon'=>'\([a-zA-Z0-9\s,]+\)','options'=>'?'),
                                                         'space_bval'    =>array('wagon'=>'[\s]+','options'=>'?'),
                                                         'values'        =>array('wagon'=>'VALUES','options'=>'?'),
                                                         'space_val'     =>array('wagon'=>'[\s]+','options'=>'?'),
                                                         'colvals'       =>array('wagon'=>'\([^\(]+\)','options'=>'?'),
-                                                        ),'options'=>'?'
-                                                        ),
+                                                    ),
+                                       'options'=>'?'
+                                    ),
 
-                // Where Clause
-                'whereClause'       =>array('wagon' => array(
+        // Where Clause
+        'whereClause'       => array('wagon' => array(
                                                         'where'         =>array('wagon'=>'WHERE','options'=>''),
                                                         'space_where'   =>array('wagon'=>'[\s]+','options'=>''),
                                                         'whereCondition'=>array('wagon'=>'[^;]+','options'=>''),
-                                                        ),'options'=>'?'
-                                                        ),
-                // Order Clause
-                'orderClause'       =>array('wagon'=>array(
-                                                        'order'             =>array('wagon'=>'ORDER','options'=>''),
-                                                        'space_order'       =>array('wagon'=>'[\s]+','options'=>'*'),
-                                                        'by'                =>array('wagon'=>'BY','options'=>''),
-                                                        'orderCondition'    =>array('wagon'=>'[^;]+','options'=>''),
-                                                        ),'options'=>'?'
-                                                        )
-                ),
-                $train;
+                                                    ),
+                                       'options'=>'?'
+        ),
+        // Order Clause
+        'orderClause'       =>array('wagon'=>array(
+                                                    'order'             =>array('wagon'=>'ORDER','options'=>''),
+                                                    'space_order'       =>array('wagon'=>'[\s]+','options'=>'*'),
+                                                    'by'                =>array('wagon'=>'BY','options'=>''),
+                                                    'orderCondition'    =>array('wagon'=>'[^;]+','options'=>''),
+                                            ),'options'=>'?'
+                            )
+        ),
+        $train;
         #Tokens Index
         const    QR_INDEX                =0,                 // Query Index              #0
 
@@ -318,19 +222,15 @@
                 }
             }
 
-            switch (strtoupper($this->Tokens[self::ST_INDEX])){
+            switch (strtoupper($this->Tokens[self::ST_INDEX])){  
+                
+                #multicase since 1.6.1
                 case 'SELECT':
-                    $this->Select($this->Tokens);
-                    break;
                 case 'DELETE':
-                    $this->Delete($this->Tokens);
-                    break;
                 case 'INSERT':
-                    $this->Insert($this->Tokens);
-                    break;
                 case 'UPDATE':
-                    $this->Update($this->Tokens);
-                    break;
+                    $statementFuncName = ucfirst(strtolower($this->Tokens[self::ST_INDEX]));
+                    $this->$statementFuncName($this->Tokens);                                        
                 default:
                     $this->Error(self::UNSUPPORTED_STATEMENT,$this->FirstOf(explode(' ',$SQL)));
                     break;
@@ -520,7 +420,6 @@
 
             # @since v1.2.0   DISTINCT
             if($this->Tokens[self::UNQ_INDEX])
-
                 $this->Result = $this->Uniquarray($this->Result);
 
 
@@ -1208,9 +1107,11 @@
             {
                 $sql = $this->LastSQL;
                 reset($this->wagons);
-                while ($token = each($this->wagons)){
+                while ($token = each($this->wagons))
+                {
                     $nToken[] = $token[1];
-                    if (!preg_match('/'.$this->CreateTrain($nToken).'/i',$sql,$matched)){
+                    if (!preg_match('/'.$this->CreateTrain($nToken).'/i',$sql,$matched))
+                    {
                         echo '<tr class="hata"><td>Error on<br><b>'.strtoupper($token['key']).'</b></td><td><br>'.$token[1]['msg'].'<br></td></tr>';
                         break;
                     }
