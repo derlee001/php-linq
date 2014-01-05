@@ -8,4 +8,15 @@
 	});
 	
 	
+	$a = function(){
+		echo "hey";
+	};
+	
+	$cb = is_callable($a);
+	
 	echo '<pre>';
+	
+	$a = array("he" => 'me', '1','H' => 'asd',2=>3);
+	
+	$a = Linq\Linq::FromArray($a);
+	var_dump($a);
